@@ -87,18 +87,22 @@ jobs:
           echo "webhook_id=$WID" >> $GITHUB_OUTPUT
           echo "Helius webhook OK: $WID"
 
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Salva secrets GitHub
         run: |
-          gh secret set HELIUS_API_KEY --body "${{ github.event.inputs.helius_api_key }}"
-          gh secret set HELIUS_WEBHOOK_ID --body "${{ steps.helius.outputs.webhook_id }}"
-          gh secret set HELIUS_WEBHOOK_SECRET --body "${{ steps.gen.outputs.secret }}"
-          gh secret set TELEGRAM_BOT_TOKEN --body "${{ github.event.inputs.telegram_bot_token }}"
-          gh secret set TELEGRAM_CHAT_ID --body "${{ github.event.inputs.telegram_chat_id }}"
-          gh secret set UPSTASH_REDIS_REST_URL --body "${{ github.event.inputs.upstash_redis_url }}"
-          gh secret set UPSTASH_REDIS_REST_TOKEN --body "${{ github.event.inputs.upstash_redis_token }}"
-          gh secret set SUPABASE_URL --body "${{ github.event.inputs.supabase_url }}"
-          gh secret set SUPABASE_SERVICE_KEY --body "${{ github.event.inputs.supabase_service_key }}"
-          gh secret set DENO_WEBHOOK_URL --body "${{ github.event.inputs.deno_webhook_url }}"
+          REPO="${{ github.repository }}"
+          gh secret set HELIUS_API_KEY --body "${{ github.event.inputs.helius_api_key }}" --repo "$REPO"
+          gh secret set HELIUS_WEBHOOK_ID --body "${{ steps.helius.outputs.webhook_id }}" --repo "$REPO"
+          gh secret set HELIUS_WEBHOOK_SECRET --body "${{ steps.gen.outputs.secret }}" --repo "$REPO"
+          gh secret set TELEGRAM_BOT_TOKEN --body "${{ github.event.inputs.telegram_bot_token }}" --repo "$REPO"
+          gh secret set TELEGRAM_CHAT_ID --body "${{ github.event.inputs.telegram_chat_id }}" --repo "$REPO"
+          gh secret set UPSTASH_REDIS_REST_URL --body "${{ github.event.inputs.upstash_redis_url }}" --repo "$REPO"
+          gh secret set UPSTASH_REDIS_REST_TOKEN --body "${{ github.event.inputs.upstash_redis_token }}" --repo "$REPO"
+          gh secret set SUPABASE_URL --body "${{ github.event.inputs.supabase_url }}" --repo "$REPO"
+          gh secret set SUPABASE_SERVICE_KEY --body "${{ github.event.inputs.supabase_service_key }}" --repo "$REPO"
+          gh secret set DENO_WEBHOOK_URL --body "${{ github.event.inputs.deno_webhook_url }}" --repo "$REPO"
           echo "Tutti i secrets salvati"
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
