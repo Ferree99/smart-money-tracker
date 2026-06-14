@@ -113,6 +113,7 @@ jobs:
           CHAT=$(echo "${{ github.event.inputs.telegram_chat_id }}" | xargs)
           WID="${{ steps.helius.outputs.webhook_id }}"
           SECRET="${{ steps.gen.outputs.secret }}"
-          MSG="Setup completato!%0A%0AHelius Webhook ID: ${WID}%0A%0AOra aggiungi su Deno Deploy:%0AHELIUS_WEBHOOK_SECRET = ${SECRET}%0A%0APoi lancia lo Scout da GitHub Actions."
-          curl -s "https://api.telegram.org/bot${TOKEN}/sendMessage?chat_id=${CHAT}&text=${MSG}"
+          curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "{\"chat_id\":\"${CHAT}\",\"text\":\"Setup completato!\n\nHelius Webhook ID: ${WID}\n\nOra aggiungi su Deno Deploy:\nHELIUS_WEBHOOK_SECRET = ${SECRET}\n\nPoi lancia lo Scout da GitHub Actions.\"}"
           echo "Setup completato con successo"
