@@ -1,0 +1,38 @@
+name: Smart Money Scout Giornaliero
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  scout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Esegui Scout
+        run: deno run --allow-net --allow-env scout/scout.ts
+        env:
+          HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
+          HELIUS_WEBHOOK_ID: ${{ secrets.HELIUS_WEBHOOK_ID }}
+          HELIUS_WEBHOOK_SECRET: ${{ secrets.HELIUS_WEBHOOK_SECRET }}
+          DENO_WEBHOOK_URL: ${{ secrets.DENO_WEBHOOK_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+          TOP_WALLET_COUNT: '20'
+
+      - name: Notifica fallimento
+        if: failure()
+        run: |
+          curl -s "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage?chat_id=${{ secrets.TELEGRAM_CHAT_ID }}&text=Scout+giornaliero+FALLITO.+Controlla+GitHub+Actions."

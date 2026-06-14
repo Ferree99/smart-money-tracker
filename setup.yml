@@ -1,0 +1,111 @@
+name: Setup Iniziale
+
+on:
+  workflow_dispatch:
+    inputs:
+      helius_api_key:
+        description: 'Helius API Key'
+        required: true
+        type: string
+      telegram_bot_token:
+        description: 'Telegram Bot Token'
+        required: true
+        type: string
+      telegram_chat_id:
+        description: 'Telegram Chat ID'
+        required: true
+        type: string
+      upstash_redis_url:
+        description: 'Upstash Redis URL'
+        required: true
+        type: string
+      upstash_redis_token:
+        description: 'Upstash Redis Token'
+        required: true
+        type: string
+      supabase_url:
+        description: 'Supabase URL'
+        required: true
+        type: string
+      supabase_service_key:
+        description: 'Supabase Service Key'
+        required: true
+        type: string
+      deno_webhook_url:
+        description: 'Deno Deploy URL (es: https://mio-progetto.deno.dev)'
+        required: true
+        type: string
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Genera webhook secret
+        id: gen
+        run: |
+          SECRET=$(openssl rand -hex 32)
+          echo "secret=$SECRET" >> $GITHUB_OUTPUT
+
+      - name: Test Telegram
+        run: |
+          TOKEN=$(echo "${{ github.event.inputs.telegram_bot_token }}" | xargs)
+          CHAT=$(echo "${{ github.event.inputs.telegram_chat_id }}" | xargs)
+          RESULT=$(curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "{\"chat_id\":\"${CHAT}\",\"text\":\"Smart Money Tracker: setup in corso...\"}")
+          echo "$RESULT"
+          OK=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('ok','false'))")
+          if [ "$OK" != "True" ]; then echo "ERRORE Telegram: $RESULT" && exit 1; fi
+          echo "Telegram OK"
+
+      - name: Test Redis
+        run: |
+          URL=$(echo "${{ github.event.inputs.upstash_redis_url }}" | xargs)
+          TOKEN=$(echo "${{ github.event.inputs.upstash_redis_token }}" | xargs)
+          RESULT=$(curl -s -w " HTTP_%{http_code}" "${URL}/set/smm:test/ok" \
+            -H "Authorization: Bearer ${TOKEN}")
+          echo "$RESULT"
+          if [[ "$RESULT" != *"HTTP_200"* ]]; then echo "ERRORE Redis" && exit 1; fi
+          echo "Redis OK"
+
+      - name: Crea webhook Helius
+        id: helius
+        run: |
+          KEY=$(echo "${{ github.event.inputs.helius_api_key }}" | xargs)
+          DENO=$(echo "${{ github.event.inputs.deno_webhook_url }}" | xargs)
+          SECRET="${{ steps.gen.outputs.secret }}"
+          RESULT=$(curl -s -X POST "https://api.helius.xyz/v0/webhooks?api-key=${KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{\"webhookURL\":\"${DENO}/webhook\",\"accountAddresses\":[],\"transactionTypes\":[\"SWAP\"],\"webhookType\":\"enhanced\",\"authHeader\":\"${SECRET}\"}")
+          echo "$RESULT"
+          WID=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('webhookID','ERRORE'))")
+          if [ "$WID" = "ERRORE" ]; then echo "ERRORE Helius: $RESULT" && exit 1; fi
+          echo "webhook_id=$WID" >> $GITHUB_OUTPUT
+          echo "Helius webhook OK: $WID"
+
+      - name: Salva secrets GitHub
+        run: |
+          gh secret set HELIUS_API_KEY --body "${{ github.event.inputs.helius_api_key }}"
+          gh secret set HELIUS_WEBHOOK_ID --body "${{ steps.helius.outputs.webhook_id }}"
+          gh secret set HELIUS_WEBHOOK_SECRET --body "${{ steps.gen.outputs.secret }}"
+          gh secret set TELEGRAM_BOT_TOKEN --body "${{ github.event.inputs.telegram_bot_token }}"
+          gh secret set TELEGRAM_CHAT_ID --body "${{ github.event.inputs.telegram_chat_id }}"
+          gh secret set UPSTASH_REDIS_REST_URL --body "${{ github.event.inputs.upstash_redis_url }}"
+          gh secret set UPSTASH_REDIS_REST_TOKEN --body "${{ github.event.inputs.upstash_redis_token }}"
+          gh secret set SUPABASE_URL --body "${{ github.event.inputs.supabase_url }}"
+          gh secret set SUPABASE_SERVICE_KEY --body "${{ github.event.inputs.supabase_service_key }}"
+          gh secret set DENO_WEBHOOK_URL --body "${{ github.event.inputs.deno_webhook_url }}"
+          echo "Tutti i secrets salvati"
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+
+      - name: Messaggio finale Telegram
+        run: |
+          TOKEN=$(echo "${{ github.event.inputs.telegram_bot_token }}" | xargs)
+          CHAT=$(echo "${{ github.event.inputs.telegram_chat_id }}" | xargs)
+          WID="${{ steps.helius.outputs.webhook_id }}"
+          SECRET="${{ steps.gen.outputs.secret }}"
+          MSG="Setup completato!%0A%0AHelius Webhook ID: ${WID}%0A%0AOra aggiungi su Deno Deploy:%0AHELIUS_WEBHOOK_SECRET = ${SECRET}%0A%0APoi lancia lo Scout da GitHub Actions."
+          curl -s "https://api.telegram.org/bot${TOKEN}/sendMessage?chat_id=${CHAT}&text=${MSG}"
+          echo "Setup completato con successo"
