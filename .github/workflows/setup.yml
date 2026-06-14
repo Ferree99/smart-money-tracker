@@ -75,9 +75,12 @@ jobs:
           KEY=$(echo "${{ github.event.inputs.helius_api_key }}" | xargs)
           DENO=$(echo "${{ github.event.inputs.deno_webhook_url }}" | xargs)
           SECRET="${{ steps.gen.outputs.secret }}"
+          # Helius richiede almeno un indirizzo — usiamo un wallet noto di Solana Foundation
+          # come placeholder. Lo Scout lo sostituirà con i veri wallet al primo avvio.
+          PLACEHOLDER="GThUX1Atko4tqhN2NaiTazWSeFWMuiUvfFnyJyUghFMJ"
           RESULT=$(curl -s -X POST "https://api.helius.xyz/v0/webhooks?api-key=${KEY}" \
             -H "Content-Type: application/json" \
-            -d "{\"webhookURL\":\"${DENO}/webhook\",\"accountAddresses\":[],\"transactionTypes\":[\"SWAP\"],\"webhookType\":\"enhanced\",\"authHeader\":\"${SECRET}\"}")
+            -d "{\"webhookURL\":\"${DENO}/webhook\",\"accountAddresses\":[\"${PLACEHOLDER}\"],\"transactionTypes\":[\"SWAP\"],\"webhookType\":\"enhanced\",\"authHeader\":\"${SECRET}\"}")
           echo "$RESULT"
           WID=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('webhookID','ERRORE'))")
           if [ "$WID" = "ERRORE" ]; then echo "ERRORE Helius: $RESULT" && exit 1; fi
