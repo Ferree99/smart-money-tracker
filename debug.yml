@@ -1,0 +1,24 @@
+name: Debug Helius Response
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test Helius Enhanced API
+        env:
+          HELIUS_KEY: ${{ secrets.HELIUS_API_KEY }}
+        run: |
+          echo "=== 1. Prendo wallet da BONK transactions ==="
+          curl -s "https://api.helius.xyz/v0/addresses/DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263/transactions?api-key=${HELIUS_KEY}&type=SWAP&limit=3" > /tmp/bonk_txs.json
+          cat /tmp/bonk_txs.json | head -c 2000
+          echo ""
+
+          WALLET=$(cat /tmp/bonk_txs.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[0]['feePayer'] if d else '')" 2>/dev/null || echo "")
+          echo "Wallet trovato: $WALLET"
+
+          echo "=== 2. Swap history del wallet ==="
+          curl -s "https://api.helius.xyz/v0/addresses/${WALLET}/transactions?api-key=${HELIUS_KEY}&type=SWAP&limit=2" > /tmp/wallet_txs.json
+          cat /tmp/wallet_txs.json | head -c 3000
