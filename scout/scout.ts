@@ -14,7 +14,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_KEY")!;
 const UPSTASH_REDIS_REST_URL = Deno.env.get("UPSTASH_REDIS_REST_URL")!;
 const UPSTASH_REDIS_REST_TOKEN = Deno.env.get("UPSTASH_REDIS_REST_TOKEN")!;
-const TOP_N = parseInt(Deno.env.get("TOP_WALLET_COUNT") || "20");
+const TOP_N = parseInt(Deno.env.get("TOP_WALLET_COUNT") || "50");
 
 const MIN_PUMP_MULTIPLIER = 3.0;
 const EARLY_BUYER_WINDOW_MIN = 30; // allargato a 30 min per catturare più early buyers
