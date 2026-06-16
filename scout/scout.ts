@@ -411,7 +411,10 @@ async function main() {
   }
 
   scores.sort((a, b) => b.composite_score - a.composite_score);
-  const top = scores.slice(0, TOP_N);
+  // Filtra wallet senza history reale (almeno 2 trade storici)
+  const qualified = scores.filter((w) => w.trade_count >= 2);
+  const top = qualified.slice(0, TOP_N);
+  console.log(`[Scout] ${scores.length} scorati, ${qualified.length} con storia sufficiente`);
 
   console.log(`\n[Scout] TOP ${top.length} SMART MONEY:`);
   top.forEach((w, i) => {
